@@ -70,7 +70,7 @@ async def create_google_sheet(
     
     Args:
         title: Name of the spreadsheet
-        share_with: Email address to share the spreadsheet with
+        share_with: Email address to share the spreadsheet with (must be a valid email)
     
     Returns:
         Dictionary containing status, message and spreadsheet URL
@@ -123,9 +123,9 @@ async def update_google_sheet(
     """Update a Google Sheet with the specified data and formulas.
     
     Args:
-        spreadsheet_url: URL of the spreadsheet to update
+        spreadsheet_url: URL of the spreadsheet to update (must be a valid Google Sheets URL)
         worksheet_name: Name of the worksheet to update or create (uses first sheet if None)
-        data_and_formulas: List of lists containing the data and formulas. Formulas start with = sign.
+        data_and_formulas: List of lists representing rows and columns of data. Any string starting with '=' will be treated as a formula (e.g. '=SUM(A1:A5)')
     
     Returns:
         Dictionary containing status, message and spreadsheet URL
@@ -281,15 +281,15 @@ async def get_google_sheet(
     spreadsheet_url: str,
     worksheet_name: Optional[str] = None,
     ctx: Context = None
-) -> Dict[str, Union[str, List[List[Union[str, int, float, bool]]]]]: 
-    """Get a Google Sheet by URL.
+) -> Dict[str, Union[str, List[List[Union[str, int, float, bool]]]]]:
+    """Get all data from a Google Sheet.
     
     Args:
-        spreadsheet_url: URL of the spreadsheet to get
-        worksheet_name: Name of the worksheet to get. If None, the first worksheet will be returned
+        spreadsheet_url: URL of the spreadsheet to get (must be a valid Google Sheets URL)
+        worksheet_name: Name of the worksheet to get (if None, the first worksheet will be returned)
     
     Returns:
-        Dictionary containing the data from the worksheet
+        Dictionary containing status, message, spreadsheet URL, worksheet name, and the data as a list of lists
     """
     # Input validation
     validation_errors = []
