@@ -24,8 +24,29 @@ def parse_response(response):
 async def run_tests():
     try:
         async with Client(mcp) as client:
-            # Step 1: Create a Google Sheet
-            print("\n1. Creating a new Google Sheet...")
+
+            # # Step 1: List Google Sheets with pagination
+            # print("\n1c. Listing Google Sheets with pagination (limit=2, offset=0)...")
+            # list_paginated_response = await client.call_tool(
+            #     "list_google_sheets",
+            #     {
+            #         "limit": 2,
+            #         "offset": 0
+            #     },
+            #     _return_raw_result=True
+            # )
+
+            # # Parse the paginated response
+            # list_paginated_data = parse_response(list_paginated_response.content)
+            # if not list_paginated_data:
+            #     print("Error: Could not parse paginated list response")
+            #     return
+            
+            # print(f"Paginated list response: {list_paginated_data}")
+    
+            
+            # Step 2: Create a Google Sheet
+            print("\n2. Creating a new Google Sheet...")
             create_response = await client.call_tool(
                 "create_google_sheet",
                 {

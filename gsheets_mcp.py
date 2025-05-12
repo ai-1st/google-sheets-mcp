@@ -1,7 +1,7 @@
 import os
 import time
 import functools
-from typing import Dict, List, Optional, Union, Callable, Any
+from typing import Dict, List, Optional, Union, Callable, Any, Tuple
 
 import gspread
 from fastmcp import FastMCP, Context
@@ -118,6 +118,9 @@ async def update_google_sheet(
     spreadsheet_url: str,
     worksheet_name: Optional[str],
     data_and_formulas: List[List[Union[str, int, float, bool]]],
+    set_basic_filter: Optional[bool] = True,
+    freeze_rows: Optional[int] = 1,
+    set_bold_header: Optional[bool] = True,
     ctx: Context = None
 ) -> Dict[str, Union[str, List[str]]]:
     """Update a Google Sheet with the specified data and formulas.
@@ -126,6 +129,9 @@ async def update_google_sheet(
         spreadsheet_url: URL of the spreadsheet to update (must be a valid Google Sheets URL)
         worksheet_name: Name of the worksheet to update or create (uses first sheet if None)
         data_and_formulas: List of lists representing rows and columns of data. Any string starting with '=' will be treated as a formula (e.g. '=SUM(A1:A5)')
+        set_basic_filter: Whether to set a basic filter on the worksheet
+        freeze_rows: Number of rows to freeze
+        set_bold_header: Whether to set the header row to bold
     
     Returns:
         Dictionary containing status, message and spreadsheet URL
@@ -221,11 +227,29 @@ async def update_google_sheet(
         
         # Apply backoff to worksheet update
         @backoff_handler(max_retries=5, initial_delay=1.0)
-        def update_worksheet_data(worksheet, data):
+        def worksheet_update_data(worksheet, data):
             return worksheet.update(data)
+
+        @backoff_handler(max_retries=5, initial_delay=1.0)
+        def worksheet_set_basic_filter(worksheet):
+            return worksheet.set_basic_filter()
         
+        @backoff_handler(max_retries=5, initial_delay=1.0)
+        def worksheet_freeze_rows(worksheet, rows):
+            return worksheet.freeze(rows)
+        
+        @backoff_handler(max_retries=5, initial_delay=1.0)
+        def worksheet_set_bold_header(worksheet, cols_num):
+            return worksheet.format('A1:' + chr(64 + cols_num) + '1', {'textFormat': {'bold': True}})
+
         # Update with regular data first
-        update_worksheet_data(worksheet, regular_data)
+        worksheet_update_data(worksheet, regular_data)
+        if set_basic_filter:
+            worksheet_set_basic_filter(worksheet)
+        if freeze_rows:
+            worksheet_freeze_rows(worksheet, freeze_rows)
+        if set_bold_header:
+            worksheet_set_bold_header(worksheet, len(regular_data[0]))
         
         # Then apply formulas if there are any
         if formulas:
@@ -363,6 +387,112 @@ async def get_google_sheet(
         
     except Exception as e:
         error_msg = f"Error retrieving spreadsheet data: {str(e)}"
+        if ctx:
+            await ctx.error(error_msg)
+        
+        return {
+            "status": "error",
+            "message": error_msg
+        }
+
+@mcp.tool()
+async def list_google_sheets(
+    title: Optional[str] = None,
+    folder_id: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
+    ctx: Context = None
+) -> Dict[str, Union[str, List[Dict[str, str]], int]]:
+    """List all Google Sheets accessible to the user.
+    
+    Args:
+        title: Optional filter to only include spreadsheets with this title
+        folder_id: Optional filter to only include spreadsheets in this folder
+        limit: Optional maximum number of results to return
+        offset: Optional index to start returning results from (for pagination)
+    
+    Returns:
+        Dictionary containing status, message, a list of spreadsheets with their IDs, titles, and timestamps,
+        total count, and pagination information
+    """
+    try:
+        if ctx:
+            await ctx.info("Retrieving list of accessible Google Sheets")
+            if title:
+                await ctx.info(f"Filtering by title: {title}")
+            if folder_id:
+                await ctx.info(f"Filtering by folder ID: {folder_id}")
+            if limit is not None:
+                await ctx.info(f"Limiting results to: {limit}")
+            if offset > 0:
+                await ctx.info(f"Starting from offset: {offset}")
+        
+        client = init_gspread_client()
+        
+        # Get all spreadsheets the service account has access to
+        spreadsheets = []
+        
+        # Apply backoff to spreadsheet listing
+        @backoff_handler(max_retries=5, initial_delay=1.0)
+        def list_spreadsheets() -> List[Dict[str, Any]]:
+            # Get all spreadsheets the service account has access to using list_spreadsheet_files
+            # which provides more metadata and filtering options
+            sheet_files = client.list_spreadsheet_files(title=title, folder_id=folder_id)
+            
+            sheet_list = []
+            for sheet in sheet_files:
+                # Construct the URL from the ID
+                url = f"https://docs.google.com/spreadsheets/d/{sheet['id']}"
+                
+                sheet_list.append({
+                    "id": sheet['id'],
+                    "title": sheet['name'],
+                    "url": url,
+                    "created_time": sheet.get('createdTime', ''),
+                    "modified_time": sheet.get('modifiedTime', '')
+                })
+            return sheet_list
+        
+        all_spreadsheets = list_spreadsheets()
+        total_count = len(all_spreadsheets)
+        
+        # Apply pagination if specified
+        if offset > 0 or limit is not None:
+            # Handle offset
+            paginated_spreadsheets = all_spreadsheets[offset:] if offset < total_count else []
+            
+            # Handle limit if specified
+            if limit is not None:
+                paginated_spreadsheets = paginated_spreadsheets[:limit]
+        else:
+            paginated_spreadsheets = all_spreadsheets
+        
+        if not all_spreadsheets:
+            return {
+                "status": "success",
+                "message": "No accessible Google Sheets found",
+                "spreadsheets": [],
+                "total_count": 0,
+                "offset": offset,
+                "limit": limit,
+                "has_more": False
+            }
+        
+        # Determine if there are more results beyond this page
+        has_more = (offset + len(paginated_spreadsheets) < total_count) if limit is not None else False
+        
+        return {
+            "status": "success",
+            "message": f"Found {total_count} accessible Google Sheets, returning {len(paginated_spreadsheets)}",
+            "spreadsheets": paginated_spreadsheets,
+            "total_count": total_count,
+            "offset": offset,
+            "limit": limit,
+            "has_more": has_more
+        }
+        
+    except Exception as e:
+        error_msg = f"Error listing Google Sheets: {str(e)}"
         if ctx:
             await ctx.error(error_msg)
         
