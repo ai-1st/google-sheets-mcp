@@ -1,0 +1,23 @@
+{
+    "mcpServers": {
+      "AWS EC2 Pricing MCP": {
+        "command": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "-i",
+          "-q",
+          "--network",
+          "none",
+          "ai1st/aws-pricing-mcp:latest"
+        ]
+      },
+      "Google Sheets MCP": {
+        "command": "/Users/xo/.pyenv/shims/fastmcp",
+        "args": [
+          "run",
+          "/Users/xo/google-workspace-mcp/gsheets_mcp.py"
+        ]
+      }
+    }
+  }
