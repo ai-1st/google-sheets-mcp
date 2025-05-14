@@ -35,7 +35,7 @@ The tool returns the URL of the created or updated sheet, making it easy for use
    {
      "Google Sheets MCP": {
        "command": "docker",
-       "args": ["run", "--rm", "-i", "-q", "--network", "none", "google-sheets-mcp"]
+       "args": ["run", "--rm", "-i", "-q", "google-sheets-mcp"]
      }
    }
    ```

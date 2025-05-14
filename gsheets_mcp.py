@@ -116,8 +116,8 @@ async def create_google_sheet(
 @mcp.tool()
 async def update_google_sheet(
     spreadsheet_url: str,
-    worksheet_name: Optional[str],
     data_and_formulas: List[List[Union[str, int, float, bool]]],
+    worksheet_name: Optional[str] = "Sheet1",
     set_basic_filter: Optional[bool] = True,
     freeze_rows: Optional[int] = 1,
     set_bold_header: Optional[bool] = True,
