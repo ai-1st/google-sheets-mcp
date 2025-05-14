@@ -65,12 +65,11 @@ async def run_example_1(client, email):
         {
             "title": "Sample Spreadsheet",
             "share_with": email
-        },
-        _return_raw_result=True
+        }
     )
     
     # Parse the response
-    create_data = parse_response(create_response.content)
+    create_data = parse_response(create_response)
     if not create_data:
         print("Error: Could not parse create response")
         return None
@@ -101,12 +100,10 @@ async def run_example_1(client, email):
             "set_basic_filter": True,
             "freeze_rows": 1,
             "set_bold_header": True
-        },
-        _return_raw_result=True
+        }
     )
-    
     # Parse the response
-    update_data = parse_response(update_response.content)
+    update_data = parse_response(update_response)
     if not update_data:
         print("Error: Could not parse update response")
         return None
@@ -126,12 +123,11 @@ async def run_example_2(client, email):
         {
             "title": "Budget Tracker",
             "share_with": email
-        },
-        _return_raw_result=True
+        }
     )
     
     # Parse the response
-    create_data = parse_response(create_response.content)
+    create_data = parse_response(create_response)
     if not create_data:
         print("Error: Could not parse create response")
         return None
@@ -164,12 +160,10 @@ async def run_example_2(client, email):
             "set_basic_filter": True,
             "freeze_rows": 1,
             "set_bold_header": True
-        },
-        _return_raw_result=True
+        }
     )
-    
     # Parse the response
-    update_data = parse_response(update_response.content)
+    update_data = parse_response(update_response)
     if not update_data:
         print("Error: Could not parse update response")
         return None
@@ -189,12 +183,11 @@ async def run_example_3(client, email):
         {
             "title": "Team Project Tracker",
             "share_with": email
-        },
-        _return_raw_result=True
+        }
     )
     
     # Parse the response
-    create_data = parse_response(create_response.content)
+    create_data = parse_response(create_response)
     if not create_data:
         print("Error: Could not parse create response")
         return None
@@ -211,27 +204,30 @@ async def run_example_3(client, email):
     
     # Update with data
     print("\nUpdating with data...")
+    
+    # Define the data to be added to the spreadsheet
+    data = [
+        ["Task", "Assigned To", "Due Date", "Status"],
+        ["Research", "Alice", "2025-05-20", "In Progress"],
+        ["Design", "Bob", "2025-05-25", "Not Started"],
+        ["Development", "Charlie", "2025-06-05", "Not Started"],
+        ["Testing", "Diana", "2025-06-10", "Not Started"]
+    ]
+    
     update_response = await client.call_tool(
         "update_google_sheet",
         {
             "spreadsheet_url": spreadsheet_url,
-            "worksheet_name": None,  # Use default worksheet
-            "data_and_formulas": [
-                ["Task", "Assigned To", "Due Date", "Status"],
-                ["Research", "Alice", "2025-05-20", "In Progress"],
-                ["Design", "Bob", "2025-05-25", "Not Started"],
-                ["Development", "Charlie", "2025-06-05", "Not Started"],
-                ["Testing", "Diana", "2025-06-10", "Not Started"]
-            ],
+            "worksheet_name": None,
+            "data_and_formulas": data,
             "set_basic_filter": True,
             "freeze_rows": 1,
             "set_bold_header": True
-        },
-        _return_raw_result=True
+        }
     )
     
     # Parse the response
-    update_data = parse_response(update_response.content)
+    update_data = parse_response(update_response)
     if not update_data:
         print("Error: Could not parse update response")
         return None
@@ -250,12 +246,11 @@ async def run_example_4(client):
         {
             "limit": 10,
             "offset": 0
-        },
-        _return_raw_result=True
+        }
     )
     
     # Parse the response
-    list_data = parse_response(list_response.content)
+    list_data = parse_response(list_response)
     if not list_data:
         print("Error: Could not parse list response")
         return None
@@ -277,12 +272,11 @@ async def run_example_5(client, spreadsheet_url):
         "get_google_sheet",
         {
             "spreadsheet_url": spreadsheet_url
-        },
-        _return_raw_result=True
+        }
     )
     
     # Parse the response
-    get_data = parse_response(get_response.content)
+    get_data = parse_response(get_response)
     if not get_data:
         print("Error: Could not parse get response")
         return None
